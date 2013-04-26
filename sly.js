@@ -1,14 +1,40 @@
-/*!
- * sly 1.0.0 - 24th Mar 2013
- * https://github.com/Darsain/sly
- *
- * Licensed under the MIT license.
- * http://opensource.org/licenses/MIT
- */
-;(function ($, w, undefined) {
+!function ($, w, undefined) {
 	'use strict';
+	//copy paste jquery extend function
+	if(!$.extend){
+		$.extend = function(){
+			var target = arguments[0] || {}, i = 1, length = arguments.length, deep = false, options;
+			if (typeof target === "boolean") {
+				deep = target;
+				target = arguments[1] || {};
+				i = 2;
+			}
+			if (typeof target !== "object" && !jQuery.isFunction(target)) {
+				target = {};
+			}
+			if (length == i) {
+				target = this;
+				--i;
+			}
+			for (; i < length; i++) {
+				if ((options = arguments[ i ]) != null) {
+					for (var name in options) {
+						var src = target[ name ], copy = options[ name ];
+						if (target === copy){
+							continue;
+						}
+						if (deep && copy && typeof copy === "object" && !copy.nodeType) {
+							target[ name ] = $.extend( deep, src || ( copy.length != null ? [ ] : { } ), copy );
+						} else if (copy !== undefined) {
+							target[ name ] = copy;
+						}
+					}
+				}
+			}
+			return target;
+		}
+	}
 
-	// Plugin names
 	var pluginName = 'sly';
 	var className  = 'Sly';
 	var namespace  = pluginName;
@@ -26,12 +52,12 @@
 	 * @class
 	 *
 	 * @param {Element} frame       DOM element of sly container.
-	 * @param {Object}  o           Object with plugin options.
+	 * @param {Object}  options     Object with options.
 	 * @param {Object}  callbackMap Callbacks map.
 	 */
-	function Sly(frame, o, callbackMap) {
+	function Sly(frame, options, callbackMap) {
 		// Extend options
-		o = $.extend({}, Sly.defaults, o);
+		var o = $.extend({}, Sly.defaults, options);
 
 		// Private variables
 		var self = this;
@@ -54,7 +80,7 @@
 
 		// Scrollbar
 		var $sb = $(o.scrollBar).eq(0);
-		var $handle = $sb.length ? $sb.children().eq(0) : 0;
+		var $handle = $sb.children().eq(0);
 		var sbSize = 0;
 		var handleSize = 0;
 		var hPos = {
@@ -238,7 +264,7 @@
 			updateRelatives();
 
 			// Scrollbar
-			if ($handle && sbSize > 0) {
+			if ($handle.length && sbSize > 0) {
 				// Stretch scrollbar handle to represent the visible area
 				handleSize = o.dynamicHandle ? Math.round(sbSize * frameSize / slideeSize) : $handle[o.horizontal ? 'outerWidth' : 'outerHeight']();
 
@@ -428,7 +454,7 @@
 		 * @return {Void}
 		 */
 		function syncScrollbar() {
-			if ($handle) {
+			if ($handle.length) {
 				hPos.cur = pos.start === pos.end ? 0 : (((dragging.init && !dragging.slidee) ? pos.dest : pos.cur) - pos.start) / (pos.end - pos.start) * hPos.end;
 				hPos.cur = within(Math.round(hPos.cur), hPos.start, hPos.end);
 				if (last.hPos !== hPos.cur) {
@@ -601,7 +627,7 @@
 			}
 
 			if (item === undefined) {
-				slideTo(pos[location]);
+				slideTo(pos[location], immediate);
 			} else {
 				// You can't align items to sides of the frame
 				// when centered navigation type is enabled
@@ -1199,7 +1225,7 @@
 		}
 
 		/**
-		 * Keeps track of a dragging path history.
+		 * Keeps track of a dragging delta history.
 		 *
 		 * @return {Void}
 		 */
@@ -1210,7 +1236,7 @@
 			dragging.history[0] = dragging.history[1];
 			dragging.history[1] = dragging.history[2];
 			dragging.history[2] = dragging.history[3];
-			dragging.history[3] = dragging.path;
+			dragging.history[3] = dragging.delta;
 		}
 
 		/**
@@ -1242,7 +1268,7 @@
 			var isSlidee = source === 'slidee';
 
 			// Handle dragging conditions
-			if (source === 'handle' && !(o.dragHandle && $handle)) {
+			if (source === 'handle' && !(o.dragHandle && $handle.length)) {
 				return;
 			}
 
@@ -1260,14 +1286,16 @@
 			dragging.$source = $(event.target);
 			dragging.init = 0;
 			dragging.touch = isTouch;
-			dragging.initLoc = (isTouch ? event.originalEvent.touches[0] : event)[o.horizontal ? 'pageX' : 'pageY'];
+			dragging.initPointer = isTouch ? event.originalEvent.touches[0] : event;
 			dragging.initPos = isSlidee ? pos.cur : hPos.cur;
 			dragging.start = +new Date();
 			dragging.time = 0;
 			dragging.path = 0;
+			dragging.pathToInit = isTouch ? 50 : 10;
 			dragging.history = [0, 0, 0, 0];
-			dragging.pathMin = isSlidee ? -dragging.initLoc : -hPos.cur;
-			dragging.pathMax = isSlidee ? document[o.horizontal ? 'width' : 'height'] - dragging.initLoc : hPos.end - hPos.cur;
+			dragging.initLoc = dragging.initPointer[o.horizontal ? 'pageX' : 'pageY'];
+			dragging.deltaMin = isSlidee ? -dragging.initLoc : -hPos.cur;
+			dragging.deltaMax = isSlidee ? document[o.horizontal ? 'width' : 'height'] - dragging.initLoc : hPos.end - hPos.cur;
 
 			// Add dragging class
 			(isSlidee ? $slidee : $handle).addClass(o.draggedClass);
@@ -1291,13 +1319,21 @@
 		 */
 		function dragHandler(event) {
 			dragging.released = event.type === 'mouseup' || event.type === 'touchend';
-			dragging.path = within(
-				(dragging.touch ? event.originalEvent[dragging.released ? 'changedTouches' : 'touches'][0] : event)[o.horizontal ? 'pageX' : 'pageY'] - dragging.initLoc,
-				dragging.pathMin, dragging.pathMax
-			);
+			dragging.pointer = dragging.touch ? event.originalEvent[dragging.released ? 'changedTouches' : 'touches'][0] : event;
+			dragging.pathX = dragging.pointer.pageX - dragging.initPointer.pageX;
+			dragging.pathY = dragging.pointer.pageY - dragging.initPointer.pageY;
+			dragging.pathTotal = Math.sqrt(Math.pow(dragging.pathX, 2) + Math.pow(dragging.pathY, 2));
+			dragging.delta = within(o.horizontal ? dragging.pathX : dragging.pathY, dragging.deltaMin, dragging.deltaMax);
 
 			// Initialization
-			if (!dragging.init && (Math.abs(dragging.path) > (dragging.touch ? 50 : 10) || !dragging.slidee)) {
+			if (!dragging.init && (!dragging.slidee || dragging.pathTotal > dragging.pathToInit)) {
+				// If path has reached the pathToInit value, but in a wrong direction, cancel dragging
+				if (o.horizontal ? Math.abs(dragging.pathX) < Math.abs(dragging.pathY) : Math.abs(dragging.pathX) > Math.abs(dragging.pathY)) {
+					dragEnd();
+					return;
+				}
+
+				// Mark dragging as initiated
 				dragging.init = 1;
 
 				// Disable click on a source element, as it is unwelcome when dragging SLIDEE
@@ -1321,29 +1357,38 @@
 
 					// Adjust path with a swing on mouse release
 					if (o.releaseSwing && dragging.slidee) {
-						dragging.swing = (dragging.path - dragging.history[0]) / 40 * 300;
-						dragging.path += dragging.swing;
+						dragging.swing = (dragging.delta - dragging.history[0]) / 40 * 300;
+						dragging.delta += dragging.swing;
 						dragging.tweese = Math.abs(dragging.swing) > 10;
 					}
 				}
 
-				slideTo(dragging.slidee ? Math.round(dragging.initPos - dragging.path) : handleToSlidee(dragging.initPos + dragging.path));
+				slideTo(dragging.slidee ? Math.round(dragging.initPos - dragging.delta) : handleToSlidee(dragging.initPos + dragging.delta));
 			}
 
-			// Cleanup and trigger :moveEnd event on release
+			// Stop and cleanup after dragging
 			if (dragging.released) {
-				clearInterval(historyID);
-				$doc.off(dragging.touch ? dragTouchEvents : dragMouseEvents, dragHandler);
-				(dragging.slidee ? $slidee : $handle).removeClass(o.draggedClass);
+				dragEnd();
+			}
+		}
 
-				// Resume ongoing cycle
-				self.resume(1);
+		/**
+		 * Stops dragging and cleans up after it.
+		 *
+		 * @return {Void}
+		 */
+		function dragEnd() {
+			clearInterval(historyID);
+			$doc.off(dragging.touch ? dragTouchEvents : dragMouseEvents, dragHandler);
+			(dragging.slidee ? $slidee : $handle).removeClass(o.draggedClass);
 
-				// Normally, this is triggered in render(), but if there
-				// is nothing to render, we have to do it manually here.
-				if (pos.cur === pos.dest) {
-					trigger('moveEnd');
-				}
+			// Resume ongoing cycle
+			self.resume(1);
+
+			// Normally, this is triggered in render(), but if there
+			// is nothing to render, we have to do it manually here.
+			if (dragging.init && pos.cur === pos.dest) {
+				trigger('moveEnd');
 			}
 		}
 
@@ -1529,7 +1574,7 @@
 		}
 
 		/**
-		 * Destroys plugin instance and everything it created.
+		 * Destroys instance and everything it created.
 		 *
 		 * @return {Void}
 		 */
@@ -1548,7 +1593,7 @@
 				.add($nextPageButton)
 				.unbind('.' + namespace);
 
-			// Remove plugin classes
+			// Remove classes
 			$prevButton
 				.add($nextButton)
 				.add($prevPageButton)
@@ -1567,7 +1612,7 @@
 				$frame.unbind('.' + namespace);
 				// Reset SLIDEE and handle positions
 				$slidee.add($handle).css(transform || (o.horizontal ? 'left' : 'top'), transform ? 'none' : 0);
-				// Remove plugin from element data storage
+				// Remove the instance from element data storage
 				$.removeData(frame, namespace);
 			}
 
@@ -1577,7 +1622,7 @@
 		};
 
 		/**
-		 * Initialize plugin.
+		 * Initialize.
 		 *
 		 * @return {Object}
 		 */
@@ -1590,22 +1635,23 @@
 			self.on(callbackMap);
 
 			// Set required styles to elements
+			var $movables = $handle;
 			if (!parallax) {
+				$movables = $movables.add($slidee);
 				$frame.css('overflow', 'hidden');
-				var $movables = $slidee.add($handle);
-				if (!transform) {
-					if ($frame.css('position') === 'static') {
-						$frame.css('position', 'relative');
-					}
-					$movables.css({ position: 'absolute' });
-				} else {
-					var props = {};
-					props[transform] = 'translateZ(0)';
-					$movables.css(props);
+				if (!transform && $frame.css('position') === 'static') {
+					$frame.css('position', 'relative');
 				}
 			}
-			if (!transform && $sb.css('position') === 'static') {
-				$sb.css('position', 'relative');
+			if (transform && gpuAcceleration) {
+				var props = {};
+				props[transform] = gpuAcceleration;
+				$movables.css(props);
+			} else {
+				if ($sb.css('position') === 'static') {
+					$sb.css('position', 'relative');
+				}
+				$movables.css({ position: 'absolute' });
 			}
 
 			// Load
@@ -1681,7 +1727,7 @@
 			// Mark instance as initialized
 			initialized = 1;
 
-			// Return plugin instance
+			// Return instance
 			return self;
 		};
 	}
@@ -1821,16 +1867,16 @@
 			options = {};
 		}
 
-		// Apply plugin to all elements
+		// Apply to all elements
 		return this.each(function (i, element) {
-			// Plugin call with prevention against multiple instantiations
+			// Call with prevention against multiple instantiations
 			var plugin = $.data(element, namespace);
 
 			if (!plugin && !method) {
-				// Create a new plugin object if it doesn't exist yet
+				// Create a new object if it doesn't exist yet
 				plugin = $.data(element, namespace, new Sly(element, options, callbackMap).init());
 			} else if (plugin && method) {
-				// Call plugin method
+				// Call method
 				if (plugin[method]) {
 					plugin[method].apply(plugin, methodArgs);
 				}
@@ -1840,18 +1886,18 @@
 
 	// Default options
 	Sly.defaults = {
-		horizontal: 0, // Change to horizontal direction.
+		horizontal: 0, // Switch to horizontal mode.
 
 		// Item based navigation
 		itemNav:      null, // Item navigation type. Can be: 'basic', 'centered', 'forceCentered'.
 		itemSelector: null, // Select only items that match this selector.
 		smart:        0,    // Repositions the activated item to help with further navigation.
-		activateOn:   null, // Activate an item when it receives this event. Can be: 'click', 'mouseenter', ...
-		activateMiddle: 0,  // In forceCentered navigation, always activate the item in the middle of the FRAME.
+		activateOn:   null, // Activate an item on this event. Can be: 'click', 'mouseenter', ...
+		activateMiddle: 0,  // Always activate the item in the middle of the FRAME. forceCentered only.
 
 		// Scrolling
-		scrollSource: null, // Selector or DOM element for catching the mouse wheel scrolling. Default is FRAME.
-		scrollBy:     0,    // Number of pixels/items for one mouse scroll event. 0 to disable mouse scrolling.
+		scrollSource: null, // Element for catching the mouse wheel scrolling. Default is FRAME.
+		scrollBy:     0,    // Pixels or items to move per one mouse scroll. 0 to disable scrolling.
 
 		// Dragging
 		dragSource:    null, // Selector or DOM element for catching dragging events. Default is FRAME.
@@ -1859,11 +1905,12 @@
 		touchDragging: 0,    // Enable navigation by dragging the SLIDEE with touch events.
 		releaseSwing:  0,    // Ease out on dragging swing release.
 		swingSpeed:    0.2,  // Swing synchronization speed, where: 1 = instant, 0 = infinite.
+		elasticBounds: 0,    // Stretch SLIDEE position limits when dragging past FRAME boundaries.
 
 		// Scrollbar
 		scrollBar:     null, // Selector or DOM element for scrollbar container.
 		dragHandle:    0,    // Whether the scrollbar handle should be draggable.
-		dynamicHandle: 0,    // Scrollbar handle represents the relation between hidden and visible content.
+		dynamicHandle: 0,    // Scrollbar handle represents the ratio between hidden and visible content.
 		minHandleSize: 50,   // Minimal height or width (depends on sly direction) of a handle in pixels.
 		clickBar:      0,    // Enable navigation by clicking on scrollbar.
 		syncSpeed:     0.5,  // Handle => SLIDEE synchronization speed, where: 1 = instant, 0 = infinite.
@@ -1891,16 +1938,15 @@
 		startPaused:   0,    // Whether to start in paused sate.
 
 		// Mixed options
-		moveBy:        300,     // Default speed in pixels per second used by forward & backward buttons.
-		elasticBounds: 0,       // Stretch SLIDEE position limits when dragging past borders.
-		speed:         0,       // Duration based animations speed in milliseconds. 0 to disable animations.
+		moveBy:        300,     // Speed in pixels per second used by forward and backward buttons.
+		speed:         0,       // Animations speed in milliseconds. 0 to disable animations.
 		easing:        'swing', // Easing for duration based (tweening) animations.
 		startAt:       0,       // Starting offset in pixels or items.
-		keyboardNavBy: 0,       // Enable keyboard navigation by 'items' or 'pages'.
+		keyboardNavBy: null,    // Enable keyboard navigation by 'items' or 'pages'.
 
 		// Classes
 		draggedClass:  'dragged',  // Class for dragged elements (like SLIDEE or scrollbar handle).
 		activeClass:   'active',   // Class for active items and pages.
 		disabledClass: 'disabled'  // Class for disabled navigation elements.
 	};
-}(jQuery, window));
+}(ender, window));

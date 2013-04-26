@@ -1,14 +1,16 @@
 {
-	"name": "sly",
-	"version": "0.0.0",
-	"devDependencies": {
-		"grunt-contrib-compress": "~0.4.1",
-		"grunt-contrib-jshint": "~0.2.0",
-		"grunt-contrib-concat": "~0.1.3",
-		"grunt-contrib-clean": "~0.4.0",
-		"grunt-tagrelease": "~0.2.0",
-		"grunt-bumpup": "~0.2.0",
-		"grunt-gcc": "~0.2.0",
-		"grunt": "~0.4.0"
-	}
+  "name": "ender-sly",
+  "version": "0.0.1",
+  "description": "Ender version of sly.",
+  "authors": ["tubaxenor"],
+  "homepage": "https://github.com/tubaxenor/ender-sly.git",
+  "main": "./sly.js",
+  "ender": "./ender.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tubaxenor/ender-sly.git"
+  },
+  "dependencies": {
+    "jeesh": "*"
+  }
 }
