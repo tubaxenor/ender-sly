@@ -1854,35 +1854,31 @@
 	// Expose class globally
 	w[className] = Sly;
 
-	// jQuery proxy
-	$.fn[pluginName] = function (options, callbackMap) {
-		var method, methodArgs;
-
-		// Attributes logic
-		if (!$.isPlainObject(options)) {
-			if (type(options) === 'string' || options === false) {
-				method = options === false ? 'destroy' : options;
-				methodArgs = Array.prototype.slice.call(arguments, 1);
-			}
-			options = {};
-		}
-
-		// Apply to all elements
-		return this.each(function (i, element) {
-			// Call with prevention against multiple instantiations
-			var plugin = $.data(element, namespace);
-
-			if (!plugin && !method) {
-				// Create a new object if it doesn't exist yet
-				plugin = $.data(element, namespace, new Sly(element, options, callbackMap).init());
-			} else if (plugin && method) {
-				// Call method
-				if (plugin[method]) {
-					plugin[method].apply(plugin, methodArgs);
+	// Ender proxy
+  $.ender({
+    sly: function (options, callbackMap) {
+			var method, methodArgs;
+			if (typeof options != 'object') {
+				if (type(options) === 'string' || options === false) {
+					method = options === false ? 'destroy' : options;
+					methodArgs = Array.prototype.slice.call(arguments, 1);
 				}
+				options = {};
 			}
-		});
-	};
+			$(this).forEach(function (element) {
+				var plugin = $.data(element, namespace);
+				if (!plugin && !method) {
+					// Create a new object if it doesn't exist yet
+					plugin = $.data(element, namespace, new Sly(element, options, callbackMap).init());
+				} else if (plugin && method) {
+					// Call method
+					if (plugin[method]) {
+						plugin[method].apply(plugin, methodArgs);
+					}
+				}
+			})
+    }
+  }, true)
 
 	// Default options
 	Sly.defaults = {
