@@ -2077,4 +2077,4 @@
     activeClass:   'active',   // Class for active items and pages.
     disabledClass: 'disabled'  // Class for disabled navigation elements.
   };
-}(ender, window));
+}(ender, window);
