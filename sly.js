@@ -34,8 +34,8 @@
       return target;
     }
   }
-  $.extend($.easing,
-    {
+  $.easing = {};
+  $.extend($.easing, {
         def: 'easeOutQuad',
         swing: function (x, t, b, c, d) {
             //alert($.easing.default);
@@ -165,8 +165,37 @@
             if (t < d/2) return $.easing.easeInBounce (x, t*2, 0, c, d) * .5 + b;
             return $.easing.easeOutBounce (x, t*2-d, 0, c, d) * .5 + c*.5 + b;
         }
-    });
+  });
 
+  $.ender({
+    objadd: function(obj){
+      var self = this;
+      obj.forEach(function(ele, i){
+        self.push(ele)
+      });
+      return self;
+    }
+  }, true)
+  $.ender({
+    outerWidth: function() {
+      var elem = this.get(0);
+      if (window.getComputedStyle) {
+      var computedStyle = window.getComputedStyle(elem, null);
+      return elem.offsetWidth + (parseInt(computedStyle.getPropertyValue('margin-left'), 10) || 0) + (parseInt(computedStyle.getPropertyValue('margin-right'), 10) || 0);
+      } else {
+      return elem.offsetWidth + (parseInt(elem.currentStyle["marginLeft"]) || 0) + (parseInt(elem.currentStyle["marginRight"]) || 0);
+      }
+    },
+    outerHeight: function() {
+      var elem = this.get(0);
+      if (window.getComputedStyle) {
+      var computedStyle = window.getComputedStyle(elem, null);
+      return elem.offsetWidth + (parseInt(computedStyle.getPropertyValue('margin-top'), 10) || 0) + (parseInt(computedStyle.getPropertyValue('margin-bottom'), 10) || 0);
+      } else {
+      return elem.offsetWidth + (parseInt(elem.currentStyle["marginTop"]) || 0) + (parseInt(elem.currentStyle["marginBottom"]) || 0);
+      }
+    }
+  }, true)
   var pluginName = 'sly';
   var className  = 'Sly';
   var namespace  = pluginName;
@@ -199,7 +228,7 @@
 
     // Frame
     var $frame = $(frame);
-    var $slidee = $frame.children().eq(0);
+    var $slidee = $($frame.children()[0]);
     var frameSize = 0;
     var slideeSize = 0;
     var pos = {
@@ -211,8 +240,8 @@
     };
 
     // Scrollbar
-    var $sb = $(o.scrollBar).eq(0);
-    var $handle = $sb.children().eq(0);
+    var $sb = $($(o.scrollBar)[0]);
+    var $handle = $($sb.children()[0]);
     var sbSize = 0;
     var handleSize = 0;
     var hPos = {
@@ -319,7 +348,7 @@
         var paddingStart = getPx($slidee, o.horizontal ? 'paddingLeft' : 'paddingTop');
         var paddingEnd = getPx($slidee, o.horizontal ? 'paddingRight' : 'paddingBottom');
         var marginStart = getPx($items, o.horizontal ? 'marginLeft' : 'marginTop');
-        var marginEnd = getPx($items.slice(-1), o.horizontal ? 'marginRight' : 'marginBottom');
+        var marginEnd = getPx($($items.slice(-1)[0]), o.horizontal ? 'marginRight' : 'marginBottom');
         var centerOffset = 0;
         var areFloated = $items.css('float') !== 'none';
 
@@ -330,7 +359,7 @@
         slideeSize = 0;
 
         // Iterate through items
-        $items.each(function (i, element) {
+        $items.forEach(function (element, i) {
           // Item
           var $item = $(element);
           var itemSize = $item[o.horizontal ? 'outerWidth' : 'outerHeight'](true);
@@ -419,7 +448,7 @@
 
         // Populate pages array
         if (itemNav) {
-          $.each(items, function (i, item) {
+          items.forEach(function (item, i) {
             if (forceCenteredNav || item.start + item.size > tempPagePos) {
               tempPagePos = item[forceCenteredNav ? 'center' : 'start'];
               pages.push(tempPagePos);
@@ -608,7 +637,7 @@
     function syncPagesbar() {
       if ($pages[0] && last.page !== rel.activePage) {
         last.page = rel.activePage;
-        $pages.removeClass(o.activeClass).eq(rel.activePage).addClass(o.activeClass);
+        $($pages.removeClass(o.activeClass)[rel.activePage]).addClass(o.activeClass);
         trigger('activePage', last.page);
       }
     }
@@ -625,7 +654,7 @@
         var index = getIndex(item);
         return index !== -1 ? items[index] : false;
       } else {
-        var $item = $slidee.find(item).eq(0);
+        var $item = $($slidee.find(item)[0]);
 
         if ($item[0]) {
           var offset = o.horizontal ? $item.offset().left - $slidee.offset().left : $item.offset().top - $slidee.offset().top;
@@ -857,8 +886,12 @@
       // has been a change. Otherwise just return the current active index.
       if (last.active !== index) {
         // Update classes
-        $items.eq(rel.activeItem).removeClass(o.activeClass);
-        $items.eq(index).addClass(o.activeClass);
+        if(rel.activeItem == -1){
+          $items.last().removeClass(o.activeClass);
+        } else {
+          $($items[rel.activeItem]).removeClass(o.activeClass);
+        }
+        $($items[index]).addClass(o.activeClass);
 
         last.active = rel.activeItem = index;
 
@@ -1002,15 +1035,15 @@
         last.slideePosState = slideePosState;
 
         if ($prevPageButton.is('button,input')) {
-          $prevPageButton.prop('disabled', isStart);
+          $prevPageButton.attr('disabled', isStart);
         }
 
         if ($nextPageButton.is('button,input')) {
-          $nextPageButton.prop('disabled', isEnd);
+          $nextPageButton.attr('disabled', isEnd);
         }
 
-        $prevPageButton.add($backwardButton)[isStart ? 'addClass' : 'removeClass'](o.disabledClass);
-        $nextPageButton.add($forwardButton)[isEnd ? 'addClass' : 'removeClass'](o.disabledClass);
+        $prevPageButton.objadd($backwardButton)[isStart ? 'addClass' : 'removeClass'](o.disabledClass);
+        $nextPageButton.objadd($forwardButton)[isEnd ? 'addClass' : 'removeClass'](o.disabledClass);
       }
 
       // Forward & Backward buttons need a separate state caching because we cannot "property disable"
@@ -1019,11 +1052,11 @@
         last.fwdbwdState = slideePosState;
 
         if ($backwardButton.is('button,input')) {
-          $backwardButton.prop('disabled', isStart);
+          $backwardButton.attr('disabled', isStart);
         }
 
         if ($forwardButton.is('button,input')) {
-          $forwardButton.prop('disabled', isEnd);
+          $forwardButton.attr('disabled', isEnd);
         }
       }
 
@@ -1037,11 +1070,11 @@
           last.itemsButtonState = itemsButtonState;
 
           if ($prevButton.is('button,input')) {
-            $prevButton.prop('disabled', isFirst);
+            $prevButton.attr('disabled', isFirst);
           }
 
           if ($nextButton.is('button,input')) {
-            $nextButton.prop('disabled', isLast);
+            $nextButton.attr('disabled', isLast);
           }
 
           $prevButton[isFirst ? 'addClass' : 'removeClass'](o.disabledClass);
@@ -1174,7 +1207,7 @@
 
         if (index > -1) {
           // Remove the element
-          $items.eq(index).remove();
+          $($items[index]).remove();
 
           // If the current item is being removed, activate new one after reload
           var reactivate = index === rel.activeItem && !(forceCenteredNav && o.activateMiddle);
@@ -1213,7 +1246,7 @@
 
       // Move only if there is an actual change requested
       if (item > -1 && position > -1 && item !== position && (!after || position !== item - 1) && (after || position !== item + 1)) {
-        $items.eq(item)[after ? 'insertAfter' : 'insertBefore'](items[position].el);
+        $items[item][after ? 'insertAfter' : 'insertBefore'](items[position].el);
 
         var shiftStart = item < position ? item : (after ? position : position - 1);
         var shiftEnd = item > position ? item : (after ? position + 1 : position);
@@ -1713,27 +1746,27 @@
     self.destroy = function () {
       // Unbind all events
       $doc
-        .add($scrollSource)
-        .add($handle)
-        .add($sb)
-        .add($pb)
-        .add($forwardButton)
-        .add($backwardButton)
-        .add($prevButton)
-        .add($nextButton)
-        .add($prevPageButton)
-        .add($nextPageButton)
+        .objadd($scrollSource)
+        .objadd($handle)
+        .objadd($sb)
+        .objadd($pb)
+        .objadd($forwardButton)
+        .objadd($backwardButton)
+        .objadd($prevButton)
+        .objadd($nextButton)
+        .objadd($prevPageButton)
+        .objadd($nextPageButton)
         .unbind('.' + namespace);
 
       // Remove classes
       $prevButton
-        .add($nextButton)
-        .add($prevPageButton)
-        .add($nextPageButton)
+        .objadd($nextButton)
+        .objadd($prevPageButton)
+        .objadd($nextPageButton)
         .removeClass(o.disabledClass);
 
       if ($items) {
-        $items.eq(rel.activeItem).removeClass(o.activeClass);
+        $items[rel.activeItem].removeClass(o.activeClass);
       }
 
       // Remove page items
@@ -1743,7 +1776,7 @@
         // Unbind events from frame
         $frame.unbind('.' + namespace);
         // Reset SLIDEE and handle positions
-        $slidee.add($handle).css(transform || (o.horizontal ? 'left' : 'top'), transform ? 'none' : 0);
+        $slidee.objadd($handle).css(transform || (o.horizontal ? 'left' : 'top'), transform ? 'none' : 0);
         // Remove the instance from element data storage
         $.removeData(frame, namespace);
       }
@@ -1769,7 +1802,7 @@
       // Set required styles to elements
       var $movables = $handle;
       if (!parallax) {
-        $movables = $movables.add($slidee);
+        $movables = $movables.objadd($slidee);
         $frame.css('overflow', 'hidden');
         if (!transform && $frame.css('position') === 'static') {
           $frame.css('position', 'relative');
@@ -1998,10 +2031,10 @@
         options = {};
       }
       $(this).forEach(function (element) {
-        var plugin = $.data(element, namespace);
+        var plugin = $(element).data(namespace);
         if (!plugin && !method) {
           // Create a new object if it doesn't exist yet
-          plugin = $.data(element, namespace, new Sly(element, options, callbackMap).init());
+          plugin = $(element).attr("data-"+namespace, new Sly(element, options, callbackMap).init())
         } else if (plugin && method) {
           // Call method
           if (plugin[method]) {
