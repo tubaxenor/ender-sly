@@ -360,7 +360,7 @@
         var paddingStart = getPx($slidee, o.horizontal ? 'paddingLeft' : 'paddingTop');
         var paddingEnd = getPx($slidee, o.horizontal ? 'paddingRight' : 'paddingBottom');
         var marginStart = getPx($items, o.horizontal ? 'marginLeft' : 'marginTop');
-        var marginEnd = getPx($($items.last[0]), o.horizontal ? 'marginRight' : 'marginBottom');
+        var marginEnd = getPx($items.last(), o.horizontal ? 'marginRight' : 'marginBottom');
         var centerOffset = 0;
         var areFloated = $items.css('float') !== 'none';
 
