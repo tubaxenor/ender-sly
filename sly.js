@@ -197,10 +197,15 @@
       return elem.offsetWidth + (parseInt(elem.currentStyle["marginTop"]) || 0) + (parseInt(elem.currentStyle["marginBottom"]) || 0);
       }
     },
-    index: function() {
-      var el = this.get(0);
-      for(var i = 0, max = el.parentNode.childNodes.length; i < max; i++)
-       if( el.parentNode.childNodes[i] == el ) return i;
+    index: function(target) {
+      var els = this;
+      var index = -1;
+      els.forEach(function(elem, i){
+        if(elem == target){
+          index = i;
+        }
+      });
+      return index;
     }
   }, true)
   var pluginName = 'sly';
