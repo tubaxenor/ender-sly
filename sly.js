@@ -170,13 +170,15 @@
   $.ender({
     objadd: function(obj){
       var self = this;
-      obj.forEach(function(ele, i){
-        self.push(ele)
+      var obj_collection = {}
+      obj.forEach(function(ele, ii){
+        var key = ii+1;
+        obj_collection[key]= ele;
       });
+      self.length = Object.keys(obj_collection).length+1
+      $.extend(self, obj_collection)
       return self;
-    }
-  }, true)
-  $.ender({
+    },
     outerWidth: function() {
       var elem = this.get(0);
       if (window.getComputedStyle) {
@@ -194,6 +196,11 @@
       } else {
       return elem.offsetWidth + (parseInt(elem.currentStyle["marginTop"]) || 0) + (parseInt(elem.currentStyle["marginBottom"]) || 0);
       }
+    },
+    index: function() {
+      var el = this.get(0);
+      for(var i = 0, max = el.parentNode.childNodes.length; i < max; i++)
+       if( el.parentNode.childNodes[i] == el ) return i;
     }
   }, true)
   var pluginName = 'sly';
@@ -348,7 +355,7 @@
         var paddingStart = getPx($slidee, o.horizontal ? 'paddingLeft' : 'paddingTop');
         var paddingEnd = getPx($slidee, o.horizontal ? 'paddingRight' : 'paddingBottom');
         var marginStart = getPx($items, o.horizontal ? 'marginLeft' : 'marginTop');
-        var marginEnd = getPx($($items.slice(-1)[0]), o.horizontal ? 'marginRight' : 'marginBottom');
+        var marginEnd = getPx($($items.last[0]), o.horizontal ? 'marginRight' : 'marginBottom');
         var centerOffset = 0;
         var areFloated = $items.css('float') !== 'none';
 
