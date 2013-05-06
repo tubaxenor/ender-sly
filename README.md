@@ -6,4 +6,4 @@ Dependency: [The Jeesh](https://github.com/ender-js/jeesh)
 
 If you're already using ender, you can add it to your existing instance :
 
-    $ ender add calender
+    $ ender add ender-sly
