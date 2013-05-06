@@ -1434,14 +1434,14 @@
      *
      * @return {Void}
      */
-    function dragInit(event) {
+    function dragInit(event, opt) {
       // Ignore when already in progress
       if (dragging.init) {
         return;
       }
 
       var isTouch = event.type === 'touchstart';
-      var source = event.data.source;
+      var source = opt.source;
       var isSlidee = source === 'slidee';
 
       // Handle dragging conditions
@@ -1881,11 +1881,11 @@
       }
 
       // Dragging navigation
-      $dragSource.on(dragInitEvents, { source: 'slidee' }, dragInit);
+      $dragSource.on(dragInitEvents, dragInit, { source: 'slidee' });
 
       // Scrollbar dragging navigation
       if ($handle) {
-        $handle.on(dragInitEvents, { source: 'handle' }, dragInit);
+        $handle.on(dragInitEvents, dragInit, { source: 'handle' });
       }
 
       // Keyboard navigation
